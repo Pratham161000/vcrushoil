@@ -1,0 +1,282 @@
+(10, 'admin123', 'admin03@gmail.com', '1234', 'admin');
+
+<p>number : <span><?php echo $fetch_message['number']; ?></span> </p>
+
+
+/* From https://css.glass */
+background: rgba(255, 255, 255, 0.35);
+border-radius: 16px;
+box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+backdrop-filter: blur(9.2px);
+-webkit-backdrop-filter: blur(9.2px);
+border: 1px solid rgba(255, 255, 255, 0.49);
+
+
+
+// Cart delete all option
+<div class="more-btn">
+        <a href="cart.php?delete_all" class="delete-btn <?php echo ($grand_total > 1)?'':'disabled' ?>" onclick="return confirm('delete all from cart?');">Delete All</a>
+</div>
+
+
+
+<!-- **************  Shop code ****************** -->
+
+<?php
+
+@include 'config.php';
+
+session_start();
+
+$user_id = $_SESSION['user_id'];
+
+if(!isset($user_id)){
+   header('location:login.php');
+};
+
+if(isset($_POST['add_to_wishlist'])){
+
+    $product_id = $_POST['product_id'];
+    $product_name = $_POST['product_name'];
+    $product_price = $_POST['product_price'];
+    $product_image = $_POST['product_image'];
+
+    $check_wishlist_numbers = mysqli_query($conn, "SELECT * FROM `wishlist` WHERE name = '$product_name' AND user_id = '$user_id'") or die('query failed');
+
+    $check_cart_numbers = mysqli_query($conn, "SELECT * FROM `cart` WHERE name = '$product_name' AND user_id = '$user_id'") or die('query failed');
+
+    if(mysqli_num_rows($check_wishlist_numbers) > 0){
+        $message[] = 'Already added to Wishlist';
+    }elseif(mysqli_num_rows($check_cart_numbers) > 0){
+        $message[] = 'Already added to Cart';
+    }else{
+        mysqli_query($conn, "INSERT INTO `wishlist`(user_id, pid, name, price, image) VALUES('$user_id', '$product_id', '$product_name', '$product_price', '$product_image')") or die('query failed');
+        $message[] = 'Product added to Wishlist';
+    }
+
+}
+
+if(isset($_POST['add_to_cart'])){
+
+    $product_id = $_POST['product_id'];
+    $product_name = $_POST['product_name'];
+    $product_price = $_POST['product_price'];
+    $product_image = $_POST['product_image'];
+    $product_quantity = $_POST['product_quantity'];
+
+    $check_cart_numbers = mysqli_query($conn, "SELECT * FROM `cart` WHERE name = '$product_name' AND user_id = '$user_id'") or die('query failed');
+
+    if(mysqli_num_rows($check_cart_numbers) > 0){
+        $message[] = 'Already added to Cart';
+    }else{
+
+        $check_wishlist_numbers = mysqli_query($conn, "SELECT * FROM `wishlist` WHERE name = '$product_name' AND user_id = '$user_id'") or die('query failed');
+
+        if(mysqli_num_rows($check_wishlist_numbers) > 0){
+            mysqli_query($conn, "DELETE FROM `wishlist` WHERE name = '$product_name' AND user_id = '$user_id'") or die('query failed');
+        }
+
+        mysqli_query($conn, "INSERT INTO `cart`(user_id, pid, name, price, quantity, image) VALUES('$user_id', '$product_id', '$product_name', '$product_price', '$product_quantity', '$product_image')") or die('query failed');
+        $message[] = 'Product added to Cart';
+    }
+
+}
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Shop</title>
+
+   <link rel="icon" href="./img/logo.png" type="image/x-icon">
+   
+   <!-- font awesome cdn link  -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+   <!-- custom admin css file link  -->
+   <link rel="stylesheet" href="css/style.css">
+
+</head>
+<body>
+   
+<?php @include 'header.php'; ?>
+
+<section class="heading">
+    <h3>Our Shop</h3>
+    <p> <a href="home.php">Home</a> / Shop </p>
+</section>
+
+<section class="products">
+
+   <h1 class="title">Latest Products</h1>
+
+   <div class="box-container">
+
+      <?php
+         $select_products = mysqli_query($conn, "SELECT * FROM `products`") or die('query failed');
+         if(mysqli_num_rows($select_products) > 0){
+            while($fetch_products = mysqli_fetch_assoc($select_products)){
+      ?>
+      <form action="" method="POST" class="box">
+         <a href="view_page.php?pid=<?php echo $fetch_products['id']; ?>" class="fas fa-eye"></a>
+         <div class="price">₹<?php echo $fetch_products['price']; ?>/-</div>
+         <img src="uploaded_img/<?php echo $fetch_products['image']; ?>" alt="" class="image">
+         <div class="name"><?php echo $fetch_products['name']; ?></div>
+         <input type="number" name="product_quantity" value="1" min="0" class="qty">
+         <input type="hidden" name="product_id" value="<?php echo $fetch_products['id']; ?>">
+         <input type="hidden" name="product_name" value="<?php echo $fetch_products['name']; ?>">
+         <input type="hidden" name="product_price" value="<?php echo $fetch_products['price']; ?>">
+         <input type="hidden" name="product_image" value="<?php echo $fetch_products['image']; ?>">
+         <input type="submit" value="add to wishlist" name="add_to_wishlist" class="option-btn">
+         <input type="submit" value="add to cart" name="add_to_cart" class="btn">
+      </form>
+      <?php
+         }
+      }else{
+         echo '<p class="empty">No Products added yet!</p>';
+      }
+      ?>
+
+   </div>
+
+</section>
+
+
+
+
+
+
+<?php @include 'footer.php'; ?>
+
+<script src="js/script.js"></script>
+
+</body>
+</html>
+
+
+
+<!-- **************************  Login Code ****************** -->
+
+<?php
+
+@include 'config.php';
+
+session_start();
+
+if(isset($_POST['submit'])){
+   
+   $email_or_number = mysqli_real_escape_string($conn, $_POST['email_or_number']);
+   $filter_pass = filter_var($_POST['pass'], FILTER_SANITIZE_STRING);
+   $pass = mysqli_real_escape_string($conn, md5($filter_pass));
+
+   // Check if entered value is an email or phone number
+   if(filter_var($email_or_number, FILTER_VALIDATE_EMAIL)){
+      // Perform login with email
+      $select_users = mysqli_query($conn, "SELECT * FROM `users` WHERE (email = '$email_or_number' OR name = '$email') AND password = '$pass'") or die('query failed');
+   }else{
+      // Perform login with phone number
+      $select_users = mysqli_query($conn, "SELECT * FROM `users` WHERE number = '$email_or_number' AND password = '$pass'") or die('query failed');
+   }
+   
+   // Continue with login validation and session management as usual
+   if(mysqli_num_rows($select_users) > 0){
+      
+      $row = mysqli_fetch_assoc($select_users);
+
+      if($row['user_type'] == 'admin'){
+
+         $_SESSION['admin_name'] = $row['name'];
+         $_SESSION['admin_email'] = $row['email'];
+         $_SESSION['admin_id'] = $row['id'];
+         header('location:admin_page.php');
+
+      }elseif($row['user_type'] == 'user'){
+
+         $_SESSION['user_name'] = $row['name'];
+         $_SESSION['user_email'] = $row['email'];
+         $_SESSION['user_id'] = $row['id'];
+         header('location:home.php');
+
+      }else{
+         $message[] = 'no user found!';
+      }
+
+   }else{
+      $message[] = 'incorrect email or password!';
+      echo '<script>document.getElementById("forgot-password").style.display = "block";</script>';
+   }
+   
+}
+
+
+// if(isset($_POST['submit'])){
+
+//    $filter_email = filter_var($_POST['email'], FILTER_SANITIZE_STRING);
+//    $email = mysqli_real_escape_string($conn, $filter_email);
+//    $filter_phone_number = filter_var($_POST['number'], FILTER_SANITIZE_STRING);
+//    $number = mysqli_real_escape_string($conn, $filter_phone_number);
+//    $filter_pass = filter_var($_POST['pass'], FILTER_SANITIZE_STRING);
+//    $pass = mysqli_real_escape_string($conn, md5($filter_pass));
+
+//    $select_users = mysqli_query($conn, "SELECT * FROM `users` WHERE (email = '$email' OR name = '$email' OR number = '$number') AND password = '$pass'") or die('query failed');
+
+   
+
+// }
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>login</title>
+
+   <link rel="icon" href="./img/logo.png" type="image/x-icon">
+   
+   <!-- font awesome cdn link  -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+   <!-- custom css file link  -->
+   <link rel="stylesheet" href="css/style.css">
+
+</head>
+<body>
+
+<?php
+if(isset($message)){
+   foreach($message as $message){
+      echo '
+      <div class="message">
+         <span>'.$message.'</span>
+         <i class="fas fa-times" onclick="this.parentElement.remove();"></i>
+      </div>
+      ';
+   }
+}
+?>
+   
+<section class="form-container">
+
+   <form action="" method="post">
+      <h3>login now</h3>
+      <!-- <input type="text" name="email" class="box" placeholder="Enter your Email/Username" required>
+      <input type="text" name="number" class="box" placeholder="Enter your Phone Number" required> -->
+      <input type="text" name="email_or_number" class="box" placeholder="Enter your Email or Phone Number" required>
+      <input type="password" name="pass" class="box" placeholder="Enter your Password" required>
+      <input type="submit" class="btn" name="submit" value="login now">
+      <!-- <a href="forgot.php" id="forgot-password">Forgot Password?</a> -->
+      <p>Don't have an Account? <a href="register.php">Register Now</a></p>
+      <p><a href="forgot.php">Forgot Password?</a></p>
+   </form>
+
+</section>
+
+</body>
+</html>
